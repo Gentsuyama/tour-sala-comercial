@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tour virtual da sala comercial</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant:ital,wght@0,500;0,600;1,500&family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  /* Galeria escura em tom ameixa, para as paredes claras e os dourados das fotos se destacarem.
+     Layout: visor 3:4 à esquerda (ou no topo no celular) + painel de roteiro ao lado. */
+  --bg:#18131a;
+  --surface:#231c25;
+  --line:#3a2f3c;
+  --text:#f5eff4;
+  --muted:#b7a9b6;
+  --gold:#d1ae68;
+  --wine:#9b2f4a;
+  --display:"Cormorant", "Iowan Old Style", Georgia, serif;
+  --body:"Manrope", system-ui, -apple-system, "Segoe UI", sans-serif;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--text);font-family:var(--body);-webkit-font-smoothing:antialiased}
+button{font:inherit;color:inherit;cursor:pointer}
+button:focus-visible,a:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
+
+.wrap{max-width:1180px;margin:0 auto;padding:16px 16px 40px;display:grid;gap:20px}
+header{display:flex;align-items:end;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.eyebrow{font-size:.72rem;letter-spacing:.16em;text-transform:uppercase;color:var(--gold);font-weight:600}
+h1{font-family:var(--display);font-weight:500;font-size:clamp(1.9rem,5vw,2.8rem);line-height:1.02;margin:.2em 0 0;text-wrap:balance}
+h1 em{color:var(--gold)}
+
+.layout{display:grid;gap:20px}
+@media(min-width:900px){.layout{grid-template-columns:minmax(0,560px) 1fr;align-items:start}}
+
+/* Visor */
+.viewer{position:relative;aspect-ratio:3/4;width:100%;border-radius:14px;overflow:hidden;background:#000;
+  box-shadow:0 20px 50px -20px rgba(0,0,0,.7);touch-action:pan-y;user-select:none}
+@media(min-width:900px){.viewer{position:sticky;top:16px;max-height:calc(100vh - 32px);aspect-ratio:auto;height:min(746px,calc(100vh - 32px))}}
+.frame{position:absolute;inset:0;opacity:0;transition:opacity .6s ease}
+.frame.on{opacity:1}
+.frame .kb{position:absolute;inset:0;animation:kb 14s ease-in-out infinite alternate}
+.frame img{width:100%;height:100%;object-fit:cover;display:block}
+@keyframes kb{from{transform:scale(1)}to{transform:scale(1.07) translateY(-1.5%)}}
+@media(prefers-reduced-motion:reduce){.frame .kb{animation:none}.frame{transition:none}}
+
+.hot{position:absolute;transform:translate(-50%,-50%);display:flex;align-items:center;gap:8px;
+  background:rgba(24,19,26,.78);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);
+  border:1px solid rgba(209,174,104,.6);border-radius:999px;padding:6px 12px 6px 6px;font-size:.8rem;font-weight:600;white-space:nowrap;z-index:3}
+.hot.l{transform:translate(0,-50%)}
+.hot.r{transform:translate(-100%,-50%);flex-direction:row-reverse;padding:6px 6px 6px 12px}
+.hot .dot{width:18px;height:18px;border-radius:50%;background:var(--gold);position:relative;flex:none}
+.hot .dot::after{content:"";position:absolute;inset:-5px;border-radius:50%;border:2px solid var(--gold);animation:pulse 1.8s ease-out infinite}
+@keyframes pulse{from{opacity:.9;transform:scale(.7)}to{opacity:0;transform:scale(1.6)}}
+@media(prefers-reduced-motion:reduce){.hot .dot::after{animation:none;opacity:.5}}
+
+.topbar{pointer-events:none;position:absolute;left:0;right:0;top:0;padding:12px;display:flex;justify-content:space-between;gap:8px;z-index:4;
+  background:linear-gradient(rgba(0,0,0,.45),transparent)}
+.topbar button,.nav button{pointer-events:auto}
+.pill{background:rgba(24,19,26,.72);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);border:1px solid rgba(255,255,255,.14);
+  border-radius:999px;padding:7px 12px;font-size:.78rem;font-weight:600;display:inline-flex;align-items:center;gap:6px}
+.pill.play[aria-pressed="true"]{border-color:var(--gold);color:var(--gold)}
+
+.caption{pointer-events:none;position:absolute;left:0;right:0;bottom:0;padding:56px 16px 14px;z-index:4;
+  background:linear-gradient(transparent,rgba(12,9,13,.88) 55%)}
+.caption .room{font-family:var(--display);font-size:1.7rem;line-height:1;font-weight:600}
+.caption .view{color:#e3d9e1;font-size:.88rem;margin-top:4px}
+.caption .row{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:12px}
+.dots{display:flex;gap:6px}
+.dots span{width:22px;height:3px;border-radius:2px;background:rgba(255,255,255,.3)}
+.dots span.on{background:var(--gold)}
+.nav{display:flex;gap:8px}
+.nav button{width:42px;height:42px;border-radius:50%;border:1px solid rgba(255,255,255,.25);background:rgba(24,19,26,.7);display:grid;place-items:center}
+.nav button:hover{border-color:var(--gold)}
+.progress{position:absolute;left:0;top:0;height:3px;background:var(--gold);width:0;z-index:5}
+
+/* Painel */
+.panel{display:grid;gap:18px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:16px}
+.card h2{font-family:var(--display);font-weight:600;font-size:1.35rem;margin:0 0 10px}
+.route{list-style:none;margin:0;padding:0;display:grid;gap:4px;counter-reset:s}
+.route button{width:100%;text-align:left;background:none;border:0;border-radius:10px;padding:10px;display:grid;grid-template-columns:28px 1fr auto;gap:10px;align-items:center}
+.route button:hover{background:rgba(255,255,255,.04)}
+.route .n{width:28px;height:28px;border-radius:50%;border:1px solid var(--line);display:grid;place-items:center;font-size:.78rem;font-variant-numeric:tabular-nums;color:var(--muted)}
+.route .t{font-weight:600}
+.route .c{font-size:.78rem;color:var(--muted)}
+.route button[aria-current="true"]{background:rgba(209,174,104,.1)}
+.route button[aria-current="true"] .n{background:var(--gold);border-color:var(--gold);color:#1b1410;font-weight:700}
+.desc{color:#ddd2db;line-height:1.6;margin:0;max-width:62ch}
+.thumbs{display:grid;grid-template-columns:repeat(auto-fill,minmax(72px,1fr));gap:8px;margin-top:14px}
+.thumbs button{padding:0;border:2px solid transparent;border-radius:8px;overflow:hidden;aspect-ratio:3/4;background:#000}
+.thumbs button[aria-current="true"]{border-color:var(--gold)}
+.thumbs img{width:100%;height:100%;object-fit:cover;display:block;opacity:.85}
+.thumbs button[aria-current="true"] img{opacity:1}
+.feats{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:8px 16px}
+.feats li{display:flex;gap:10px;align-items:baseline;font-size:.92rem;line-height:1.4}
+.feats li::before{content:"";width:6px;height:6px;border-radius:1px;background:var(--gold);transform:rotate(45deg) translateY(-2px);flex:none}
+.note{font-size:.8rem;color:var(--muted);margin:12px 0 0}
+.hint{font-size:.8rem;color:var(--muted)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div>
+      <div class="eyebrow">Aluguel por diária · Sala comercial</div>
+      <h1>Tour virtual da <em>sala comercial</em></h1>
+    </div>
+    <div class="hint">Arraste a foto ou use as setas para caminhar pelo espaço</div>
+  </header>
+
+  <div class="layout">
+    <section class="viewer" id="viewer" aria-roledescription="tour de fotos" aria-label="Visualizador do tour">
+      <div class="progress" id="progress"></div>
+      <div class="frame on" id="f0"><div class="kb"><img alt=""></div></div>
+      <div class="frame" id="f1"><div class="kb"><img alt=""></div></div>
+      <div id="hots"></div>
+      <div class="topbar">
+        <span class="pill" id="step">Parada 1 de 6</span>
+        <button class="pill play" id="play" aria-pressed="false">▶ Tour automático</button>
+      </div>
+      <div class="caption">
+        <div class="room" id="roomName"></div>
+        <div class="view" id="viewName" aria-live="polite"></div>
+        <div class="row">
+          <div class="dots" id="dots"></div>
+          <div class="nav">
+            <button id="prev" aria-label="Foto anterior">‹</button>
+            <button id="next" aria-label="Próxima foto">›</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <div class="panel">
+      <div class="card">
+        <h2 id="descTitle"></h2>
+        <p class="desc" id="desc"></p>
+        <div class="thumbs" id="thumbs"></div>
+      </div>
+      <div class="card">
+        <h2>Roteiro</h2>
+        <ol class="route" id="route"></ol>
+      </div>
+      <div class="card">
+        <h2>O que o espaço oferece</h2>
+        <ul class="feats">
+          <li>Recepção com balcão e pendente decorativo</li>
+          <li>Sala de espera com aparador e frigobar</li>
+          <li>Sala de atendimento e sala de procedimentos, cada uma com ar-condicionado split</li>
+          <li>Janelas com persiana e luz natural</li>
+          <li>Portas de correr duplas com puxadores dourados</li>
+          <li>Lavabo com antessala e janela basculante</li>
+          <li>Paredes com molduras decorativas</li>
+          <li>Piso de porcelanato polido</li>
+          <li>Iluminação em LED em todos os ambientes</li>
+        </ul>
+        <p class="note">Fotos com a decoração e os móveis atuais.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const ROOMS = [
+  { id:"entrada", name:"Entrada", count:"Hall de chegada",
+    desc:"A porta principal abre para um hall claro, com quadro de luz e interruptores à mão. Logo à direita fica o acesso ao lavabo, e em frente começa a sala de espera.",
+    views:[
+      { src:"img/entrada-1.jpg", cap:"Porta principal e hall",
+        hots:[{x:68,y:52,label:"Lavabo",go:[5,0]},{x:96,y:76,label:"Sala de espera",go:[1,0]}] },
+      { src:"img/entrada-2.jpg", cap:"Hall com acesso ao lavabo",
+        hots:[{x:27,y:52,label:"Lavabo",go:[5,0]},{x:80,y:66,label:"Sala de espera",go:[1,0]}] }
+    ]},
+  { id:"espera", name:"Sala de espera", count:"Aparador e poltronas",
+    desc:"Ambiente acolhedor com molduras nas paredes, aparador comprido com frigobar embutido, espaço para café e duas poltronas para os clientes.",
+    views:[
+      { src:"img/espera-1.jpg", cap:"Vista geral da sala de espera", hots:[] },
+      { src:"img/espera-2.jpg", cap:"Canto das poltronas", hots:[] }
+    ]},
+  { id:"recepcao", name:"Recepção", count:"Balcão e portas de correr",
+    desc:"Balcão de recepção em dois níveis, com pendente de LED dourado. As portas de correr duplas levam à sala de atendimento e à sala de procedimentos.",
+    views:[
+      { src:"img/recepcao-1.jpg", cap:"Recepção vista da entrada",
+        hots:[{x:41,y:62,label:"Atendimento e procedimentos",go:[3,0]},{x:4,y:74,label:"Sala de espera",go:[1,0]}] },
+      { src:"img/recepcao-2.jpg", cap:"Portas de correr abertas",
+        hots:[{x:32,y:52,label:"Atendimento e procedimentos",go:[3,0]}] },
+      { src:"img/recepcao-3.jpg", cap:"Detalhe do balcão e do pendente", hots:[] }
+    ]},
+  { id:"atendimento", name:"Sala de atendimento", count:"Mesa, computador e janela",
+    desc:"Atrás da folha esquerda das portas de correr fica a sala de atendimento, com janela, persiana, ar-condicionado split próprio, arandelas douradas e duas luminárias de LED. Nas fotos, montada com mesa, cadeira de escritório, computador e carrinho de apoio.",
+    views:[
+      { src:"img/atendimento-1.jpg", cap:"Portas de correr: atendimento à esquerda, procedimentos à direita",
+        hots:[{x:33,y:50,label:"Sala de atendimento",go:[3,1]},{x:70,y:56,label:"Procedimentos",go:[4,0]}] },
+      { src:"img/atend-1.jpg", cap:"Vista da porta", hots:[] },
+      { src:"img/atend-2.jpg", cap:"Mesa de atendimento", hots:[] },
+      { src:"img/atend-3.jpg", cap:"Janela, persiana e ar-condicionado", hots:[] },
+      { src:"img/atend-4.jpg", cap:"Canto do carrinho de apoio", hots:[] },
+      { src:"img/atend-5.jpg", cap:"Vista para a saída",
+        hots:[{x:30,y:50,label:"Voltar à recepção",go:[2,0]}] }
+    ]},
+  { id:"procedimentos", name:"Sala de procedimentos", count:"Maca, armário e espelho",
+    desc:"Sala ao lado da sala de atendimento, com janela, persiana, ar-condicionado split, armário baixo, prateleira de vidro com suportes dourados e espelho orgânico com LED. Nas fotos, montada com maca.",
+    views:[
+      { src:"img/atendimento-2.jpg", cap:"Sala com maca e armário", hots:[] },
+      { src:"img/atendimento-3.jpg", cap:"Janela, persiana e ar-condicionado", hots:[] },
+      { src:"img/atendimento-4.jpg", cap:"Espelho com LED e saída",
+        hots:[{x:72,y:52,label:"Voltar à recepção",go:[2,0]}] }
+    ]},
+  { id:"lavabo", name:"Lavabo", count:"Antessala e sanitário",
+    desc:"Antessala com parede de destaque, letreiro neon e armário para produtos. O sanitário tem janela, cuba com torneira dourada, espelho e dispensers.",
+    views:[
+      { src:"img/lavabo-1.jpg", cap:"Acesso pelo hall", hots:[{x:45,y:46,label:"Entrar",go:[5,1]}] },
+      { src:"img/lavabo-2.jpg", cap:"Antessala", hots:[{x:68,y:58,label:"Sanitário",go:[5,2]}] },
+      { src:"img/lavabo-3.jpg", cap:"Sanitário com janela", hots:[] },
+      { src:"img/lavabo-4.jpg", cap:"Cuba, espelho e acabamentos dourados",
+        hots:[] }
+    ]}
+];
+
+const $ = id => document.getElementById(id);
+let r = 0, v = 0, front = 0, timer = null, playing = false;
+const AUTO_MS = 5000;
+
+// pré-carrega
+ROOMS.forEach(room => room.views.forEach(x => { const i = new Image(); i.src = x.src; }));
+
+// roteiro
+$("route").innerHTML = ROOMS.map((room,i) =>
+  `<li><button data-r="${i}"><span class="n">${i+1}</span><span><span class="t">${room.name}</span><br><span class="c">${room.count} · ${room.views.length} fotos</span></span><span aria-hidden="true">›</span></button></li>`).join("");
+$("route").addEventListener("click", e => { const b = e.target.closest("button"); if (b) { go(+b.dataset.r, 0); stopAuto(); if (innerWidth < 900) $("viewer").scrollIntoView({behavior:"smooth", block:"start"}); } });
+
+function go(nr, nv, instant){
+  const changed = nr !== r || nv !== v;
+  r = nr; v = nv;
+  const view = ROOMS[r].views[v];
+  if (changed || instant){
+    const nextFrame = $("f" + (1 - front));
+    const img = nextFrame.querySelector("img");
+    img.src = view.src; img.alt = `${ROOMS[r].name}: ${view.cap}`;
+    const kb = nextFrame.querySelector(".kb");
+    kb.style.animation = "none"; void kb.offsetWidth; kb.style.animation = "";
+    nextFrame.classList.add("on");
+    $("f" + front).classList.remove("on");
+    front = 1 - front;
+  }
+  render();
+}
+
+function render(){
+  const room = ROOMS[r], view = room.views[v];
+  $("step").textContent = `Parada ${r+1} de ${ROOMS.length}`;
+  $("roomName").textContent = room.name;
+  $("viewName").textContent = view.cap;
+  $("dots").innerHTML = room.views.map((_,i) => `<span class="${i===v?'on':''}"></span>`).join("");
+  $("descTitle").textContent = room.name;
+  $("desc").textContent = room.desc;
+  $("thumbs").innerHTML = room.views.map((x,i) =>
+    `<button data-v="${i}" aria-current="${i===v}" aria-label="${x.cap}"><img src="${x.src}" alt=""></button>`).join("");
+  document.querySelectorAll("#route button").forEach((b,i) => b.setAttribute("aria-current", i===r));
+  $("hots").innerHTML = view.hots.map(h =>
+    `<button class="hot${h.x<20?" l":h.x>80?" r":""}" style="left:${h.x}%;top:${h.y}%" data-go="${h.go.join(',')}"><span class="dot"></span>${h.label}</button>`).join("");
+  try { history.replaceState(null, "", "#" + room.id); } catch(e) {}
+}
+
+$("thumbs").addEventListener("click", e => { const b = e.target.closest("button"); if (b) { go(r, +b.dataset.v); stopAuto(); } });
+$("hots").addEventListener("click", e => { const b = e.target.closest(".hot"); if (b) { const [a,c] = b.dataset.go.split(",").map(Number); go(a,c); stopAuto(); } });
+
+function step(d){
+  let nr = r, nv = v + d;
+  if (nv >= ROOMS[nr].views.length){ nr = (nr + 1) % ROOMS.length; nv = 0; }
+  else if (nv < 0){ nr = (nr - 1 + ROOMS.length) % ROOMS.length; nv = ROOMS[nr].views.length - 1; }
+  go(nr, nv);
+}
+$("next").onclick = () => { step(1); stopAuto(); };
+$("prev").onclick = () => { step(-1); stopAuto(); };
+document.addEventListener("keydown", e => {
+  if (e.key === "ArrowRight") { step(1); stopAuto(); }
+  if (e.key === "ArrowLeft") { step(-1); stopAuto(); }
+});
+
+// deslizar
+let sx = null, sy = null;
+const vw = $("viewer");
+vw.addEventListener("touchstart", e => { sx = e.touches[0].clientX; sy = e.touches[0].clientY; }, {passive:true});
+vw.addEventListener("touchend", e => {
+  if (sx === null) return;
+  const dx = e.changedTouches[0].clientX - sx, dy = e.changedTouches[0].clientY - sy;
+  if (Math.abs(dx) > 40 && Math.abs(dx) > Math.abs(dy)) { step(dx < 0 ? 1 : -1); stopAuto(); }
+  sx = null;
+});
+
+// tour automático
+const bar = $("progress");
+function tick(){
+  bar.style.transition = "none"; bar.style.width = "0";
+  void bar.offsetWidth;
+  bar.style.transition = `width ${AUTO_MS}ms linear`; bar.style.width = "100%";
+}
+function startAuto(){
+  playing = true; $("play").setAttribute("aria-pressed","true"); $("play").textContent = "❚❚ Pausar tour";
+  tick(); timer = setInterval(() => { step(1); tick(); }, AUTO_MS);
+}
+function stopAuto(){
+  if (!playing) return;
+  playing = false; clearInterval(timer);
+  $("play").setAttribute("aria-pressed","false"); $("play").textContent = "▶ Tour automático";
+  bar.style.transition = "none"; bar.style.width = "0";
+}
+$("play").onclick = () => playing ? stopAuto() : startAuto();
+
+// início (respeita #ambiente no link)
+const start = Math.max(0, ROOMS.findIndex(x => "#" + x.id === location.hash));
+r = -1; go(start, 0, true);
+window.addEventListener("hashchange", () => {
+  const i = ROOMS.findIndex(x => "#" + x.id === location.hash);
+  if (i >= 0 && i !== r) go(i, 0);
+});
+</script>
+</body>
+</html>
